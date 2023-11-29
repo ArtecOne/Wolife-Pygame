@@ -3,7 +3,7 @@ import numpy as np
 from debug import debug
 import settings , data
 from new_wosim import Wosim
-from new_mapa import Mapa, HIGIENE , DIVERSION , ENERGIA , HAMBRE
+from new_mapa import Mapa
 
 pygame.init()
 
@@ -19,7 +19,7 @@ def resource_path(relative_path):
 
 GRUPO_TODOS = pygame.sprite.Group()
 GRUPO_COSAS = pygame.sprite.Group()
-GRUPO_JUGADOR = pygame.sprite.GroupSingle()
+GRUPO_JUGADOR = pygame.sprite.Group()
 
 class Wolife:
     def __init__(self) -> None:
@@ -30,8 +30,11 @@ class Wolife:
         self.reloj = pygame.time.Clock()
         self.frame_anterior = time.time()
         
-        self.mapa = Mapa(data.MAPA , self.pantalla, GRUPO_COSAS , GRUPO_TODOS)
-        self.jugador = Wosim([GRUPO_JUGADOR , GRUPO_TODOS])
+        self.mapa = Mapa(data.MAPA , self.pantalla)
+        self.jugador = Wosim("Jose" , [GRUPO_JUGADOR , GRUPO_TODOS] , (130 , 20))
+        self.jugador2 = Wosim("Alfa" , [GRUPO_JUGADOR , GRUPO_TODOS] , (130 , 50))
+        
+        self.mapa.crear_cosas([GRUPO_COSAS , GRUPO_TODOS] , self.jugador.necesidades + self.jugador2.necesidades)
         
         self.timer = pygame.USEREVENT + 1
         pygame.time.set_timer(self.timer , 1000)
@@ -50,16 +53,14 @@ class Wolife:
                     pygame.quit()
                     sys.exit()
                 if evento.type == self.timer:
-                    HIGIENE.puntos += -np.random.random()
-                    DIVERSION.puntos += -np.random.random() 
-                    ENERGIA.puntos += 1/2 * -np.random.random()
-                    HAMBRE.puntos += 2 * -np.random.random()
+                    self.jugador.decrementar_necesidades()
+                    self.jugador2.decrementar_necesidades()
                     
                     
             self.pantalla.fill("blue")
             self.mapa.mostrar()
             GRUPO_TODOS.draw(self.pantalla)
-            GRUPO_TODOS.update(DELTATIME)
+            GRUPO_JUGADOR.update(DELTATIME)
             
             debug(int(self.reloj.get_fps()) , 20 , color= "black")
             self.reloj.tick(120)

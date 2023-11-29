@@ -2,12 +2,13 @@ import pygame
 import os
 import sys
 from debug import debug
-from numpy import random
 import settings
 from data import MAPA_MATRIX
+from numpy import random
+from numpy import asarray
 from pathfinding.core.grid import Grid
 from pathfinding.finder.bi_a_star import BiAStarFinder as BiAstar
-from new_necesidad import HAMBRE, HIGIENE , ENERGIA , DIVERSION
+from new_necesidad import Necesidad
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -20,167 +21,206 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 class Wosim (pygame.sprite.Sprite):
-    def __init__(self , grupos):
+    def __init__(self , nombre : str , grupos : list, ui_pos : tuple):
         super().__init__(*grupos)
-        self.pantalla = pygame.display.get_surface()
-        self.necesidades = [HAMBRE , HIGIENE , ENERGIA , DIVERSION]
+        self._nombre = nombre
+        self._pantalla = pygame.display.get_surface()
         
-        self.puntos = -5
+        x , self.yy = ui_pos
         
-        self.estado = Esperando(self)
+        self._necesidades = [Necesidad("hambre",  lambda: random.randint(0 , 3), 6 , (x , self.yy)),
+                            Necesidad("higiene", lambda: random.randint(0 , 3), 2 , (x + 100 , self.yy)),
+                            Necesidad("sueño", lambda: random.randint(0 , 3), 4, (x + 200 , self.yy)),
+                            Necesidad("diversion", lambda: random.randint(0 , 3), 2 , (x + 300 , self.yy))]
         
-        self.grupo_todos : pygame.sprite.Group = grupos[1]
+        self._estado = Esperando(self)
         
+        self._grupo_todos : pygame.sprite.Group = grupos[1] # GRUPO_TODOS , en i = 0 está GRUPO_JUGADOR
         
-        self.inicio_x = self.pantalla.get_width()//2 // 32
-        self.inicio_y = self.pantalla.get_height()//2 // 32
+        self._inicio_x = self._pantalla.get_width()//2 // 32
+        self._inicio_y = self._pantalla.get_height()//2 // 32
         
-        self.rect = self.image.get_rect(center = (self.inicio_x * 32 , self.inicio_y * 32))
+        self.rect = self.image.get_rect(center = (self._inicio_x * 32 , self._inicio_y * 32)) # rect es una propiedad de pygame.Sprite, es un atributo público
         
-        self.objetivo = pygame.image.load(resource_path("assets\\img\\UI\\selection.png")).convert_alpha()
-        self.objetivo_rect = pygame.Rect(self.rect.topleft, (settings.TILE_SIZE , settings.TILE_SIZE))
+        self._objetivo = pygame.image.load(resource_path("assets\\img\\UI\\selection.png")).convert_alpha()
+        self._objetivo_rect = pygame.Rect(self.rect.topleft, (settings.TILE_SIZE , settings.TILE_SIZE))
 
+    @property
+    def me_llamo(self) -> str:
+        return self._nombre
+    
+    @property
+    def necesidades(self) -> list:
+        return self._necesidades
+    
+    @property
+    def rectangulo_objetivo(self):
+        return self._objetivo_rect
+    
+    @property
+    def grupo_todos(self):
+        return self._grupo_todos
+
+    def set_estado(self , state):
+        self._estado = state
+    
+    def decrementar_necesidades(self):
+        [need.decrecer() for need in asarray(self._necesidades)]
+    
     def update(self , delta):
-        self.estado.main(delta)
-        self.pantalla.blit(self.objetivo , self.objetivo_rect)
-        debug(f"hambre {int(HAMBRE.puntos)} , higiene {int(HIGIENE.puntos)} , energia {int(ENERGIA.puntos)} , diversion {int(DIVERSION.puntos)}" , self.pantalla.get_width()//2)
+        self._estado.main(delta)
+        
+        for need in asarray(self._necesidades):
+            self._pantalla.blit(*need.mostrar_UI())
+        
+        self._pantalla.blit(self._objetivo , self._objetivo_rect)
+        
+        debug(f"Nombre {self._nombre} , hambre {int(self._necesidades[0].prioridad)} , higiene {int(self._necesidades[1].prioridad)} , energia {int(self._necesidades[2].prioridad)} , diversion {int(self._necesidades[3].prioridad)}" , self._pantalla.get_width()//2 - 80, self.yy + 10)
         
 class Esperando:
     def __init__(self , jugador : Wosim):
-        self.humano = jugador
+        self._humano = jugador
         
-        self.humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha()
+        self._humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha() # image es una propieda de pygame.Sprite
         
-        self.objetivo = 0
+        self._donde_ir = 0
         
-        self.seleccion_x = 0
+        self._seleccion_x = 0
         self.seleccion_y = 0
         
-        self.need = 0
-        
-        
-    def actualizar(self):
-        for necesidad in self.humano.necesidades:
-            if necesidad.puntos < 5:
-                self.need = necesidad
-        
-        for cosa in self.humano.grupo_todos.sprites():
-            if cosa == self.humano:
-                continue
+        self._need = 0
+    
+    def priorizar(self):
+        necesidades = sorted(self._humano.necesidades , key= lambda nece: nece.prioridad , reverse= True)
+        return necesidades[random.randint(2)]
+    
+    def asignar_need_y_donde_ir(self, necesidad):
+        self._need = necesidad
             
-            if self.need == cosa.necesidad:
-                self.objetivo = cosa
+        self._donde_ir = self._need.seleccionar_una_cosa()
                 
-                self.seleccion_x = self.objetivo.rect.centerx // 32
-                self.seleccion_y = self.objetivo.rect.centery // 32
-                break
-                
+        self.seleccion_x = self._donde_ir.rect.centerx // settings.TILE_SIZE
+        self.seleccion_y = self._donde_ir.rect.centery // settings.TILE_SIZE
+    
+    def buscar(self):
+        
+        necesidad = self.priorizar()
+        
+        if necesidad.cuantos_puntos() < random.randint(10 , 21):
+            self.asignar_need_y_donde_ir(necesidad)
         
         
-    def main(self , delta):
-        self.actualizar()
         
-        if self.objetivo:
-            self.humano.objetivo_rect.topleft = (self.seleccion_x * settings.TILE_SIZE, self.seleccion_y * settings.TILE_SIZE)
+    def main(self , delta = None):
+        self.buscar()
+        
+        if self._donde_ir:
+            self._humano.rectangulo_objetivo.topleft = (self.seleccion_x * settings.TILE_SIZE, self.seleccion_y * settings.TILE_SIZE)
             
-            self.humano.estado = Movimiento(self.humano, (self.humano.objetivo_rect.centerx // 32, self.humano.objetivo_rect.centery // 32), self.objetivo)
+            self._humano.set_estado(Movimiento(self._humano,
+                                               (self._humano.rectangulo_objetivo.centerx // settings.TILE_SIZE, self._humano.rectangulo_objetivo.centery // settings.TILE_SIZE),
+                                               self._donde_ir , self._need))
             
 class Movimiento:
-    def __init__(self , jugador : Wosim, destino : tuple, objeto) -> None:
-        self.humano = jugador
-        self.objeto = objeto
-        self.pantalla = pygame.display.get_surface()
-        self.direccion = pygame.math.Vector2(0 , 0)
-        self.pos = self.humano.rect.center
+    def __init__(self , jugador : Wosim, destino : tuple, cosa_donde_ir : object , necesidad) -> None:
+        self._humano = jugador
+        self._cosa = cosa_donde_ir
+        self._need = necesidad
         
-        self.inicio = (self.humano.rect.centerx // settings.TILE_SIZE , self.humano.rect.centery // settings.TILE_SIZE)
+        self._pantalla = pygame.display.get_surface()
+        self._direccion = pygame.math.Vector2(0 , 0)
+        self._pos = self._humano.rect.center
         
-        self.grafo = Grid(matrix= MAPA_MATRIX , inverse= True)
+        self._inicio = (self._humano.rect.centerx // settings.TILE_SIZE , self._humano.rect.centery // settings.TILE_SIZE)
         
-        self.nodo_inicio = self.grafo.node(*self.inicio)
-        self.nodo_final = self.grafo.node(*destino)
+        self._grafo = Grid(matrix= MAPA_MATRIX , inverse= True)
         
-        self.path =  []
-        self.puntos = []
-        self.colisiones = []
+        self._nodo_inicio = self._grafo.node(*self._inicio)
+        self._nodo_final = self._grafo.node(*destino)
         
-        self.index = 1
-        self.sprite = lambda i , image: pygame.image.load(resource_path(image.format(int(i)))).convert_alpha()
-        self.humano.image = self.sprite(self.index , "assets\\img\\player\\front_run ({}).png")
+        self._path =  []
+        self._puntos = []
+        self._colisiones = []
+        
+        self._index = 1
+        self._sprite = lambda i , image: pygame.image.load(resource_path(image.format(int(i)))).convert_alpha()
+        self._humano.image = self._sprite(self._index , "assets\\img\\player\\front_run ({}).png")
         
         self.crear_camino()
     
     def crear_camino(self):
         finder = BiAstar(diagonal_movement= True)
         
-        camino , pasos = finder.find_path(self.nodo_inicio , self.nodo_final , self.grafo)
+        camino , pasos = finder.find_path(self._nodo_inicio , self._nodo_final , self._grafo)
         
-        self.path = [(obj.x , obj.y) for obj in camino]
+        self._path = [(obj.x , obj.y) for obj in asarray(camino)]
         
-        self.puntos = [((x * 32) + 16, (y * 32) + 16) for x,y in self.path]
+        self._puntos = [((x * 32) + 16, (y * 32) + 16) for x,y in asarray(self._path)]
         
-        self.colisiones = [pygame.Rect((x -2 , y - 2) , (4 , 4)) for x , y in self.puntos[1 : -1]]
+        self._colisiones = [pygame.Rect((x -2 , y - 2) , (4 , 4)) for x , y in asarray(self._puntos[1 : -1])]
     
     def ir(self, delta):
-        if not self.colisiones:
+        if not self._colisiones:
             return
         
-        self.index += 6 * delta
+        self._index += 6 * delta
         
-        if self.index > 4:
-            self.index = 1
+        if self._index > 4:
+            self._index = 1
             
-        inicio = pygame.math.Vector2(self.humano.rect.center)
+        inicio = pygame.math.Vector2(self._humano.rect.center)
         
-        final = pygame.math.Vector2(self.colisiones[0].center)
+        final = pygame.math.Vector2(self._colisiones[0].center)
         
-        self.direccion = (final - inicio).normalize()
+        self._direccion = (final - inicio).normalize()
         
-        self.pos += self.direccion * 70 * delta
-        self.humano.rect.center = self.pos
+        self._pos += self._direccion * 100 * delta # velocidad jugador
+        self._humano.rect.center = self._pos
         
         
-        for rect in self.colisiones:
-            if rect.collidepoint(self.pos):
-                del self.colisiones[0]
+        for rect in self._colisiones:
+            if rect.collidepoint(self._pos):
+                del self._colisiones[0]
         
-        if not self.colisiones:
+        if not self._colisiones:
             return
         
-        if self.colisiones[0].centery > self.humano.rect.centery: 
-            self.humano.image = self.sprite(self.index, "assets\\img\\player\\front_run ({}).png")
+        if self._colisiones[0].centery > self._humano.rect.centery: 
+            self._humano.image = self._sprite(self._index, "assets\\img\\player\\front_run ({}).png")
         
-        elif  self.colisiones[0].centery < self.humano.rect.centery:
-            self.humano.image = self.sprite(self.index, "assets\\img\\player\\back_run ({}).png")
+        elif  self._colisiones[0].centery < self._humano.rect.centery:
+            self._humano.image = self._sprite(self._index, "assets\\img\\player\\back_run ({}).png")
             
-        elif  self.colisiones[0].centerx > self.humano.rect.centerx:
-            self.humano.image = self.sprite(self.index, "assets\\img\\player\\der_run ({}).png")
+        elif  self._colisiones[0].centerx > self._humano.rect.centerx:
+            self._humano.image = self._sprite(self._index, "assets\\img\\player\\der_run ({}).png")
             
-        elif  self.colisiones[0].centerx < self.humano.rect.centerx:
-            self.humano.image = self.sprite(self.index, "assets\\img\\player\\izq_run ({}).png")
+        elif  self._colisiones[0].centerx < self._humano.rect.centerx:
+            self._humano.image = self._sprite(self._index, "assets\\img\\player\\izq_run ({}).png")
         
         
-    def main(self, delta):
+    def main(self, delta = None):
         self.ir(delta)
         
-        if not self.puntos:
+        if not self._puntos:
             return
         
-        if not self.colisiones:
-            self.humano.estado = Satisfaciendo(self.humano , self.objeto)
+        if not self._colisiones:
+            self._humano.set_estado(Satisfaciendo(self._humano , self._cosa , self._need))
             
             
 class Satisfaciendo:
-    def __init__(self , jugador : Wosim, objeto) -> None:
-        self.humano = jugador
+    def __init__(self , jugador : Wosim, cosa , necesidad) -> None:
+        self._humano = jugador
         
-        self.obj = objeto
+        self._cosa = cosa
         
-        self.humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha()
+        self._need = necesidad
+        
+        self._humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha()
         
     def main(self , delta = None):
-        
-        self.obj.usar()
-        
-        if self.obj.necesidad.puntos >= 10:
-            self.humano.estado = Esperando(self.humano)
+        if not self._need in asarray(self._cosa.yo_relleno()):
+            self._humano.set_estado(Esperando(self._humano))
+    
+        if self._cosa.usar(self._need):
+            self._humano.set_estado(Esperando(self._humano))
