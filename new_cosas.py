@@ -19,6 +19,10 @@ def resource_path(relative_path):
 
 class Cosa(pygame.sprite.Sprite):
     def __init__(self , necesidades : list , puntos, imagen):
+        """
+        Clase superior de todas las cosas, metodos generales se encuentran aquí,
+        como el usar ; yo_relleno ; crearse
+        """
         super().__init__()
         
         for need in asarray(necesidades):
@@ -45,7 +49,7 @@ class Cosa(pygame.sprite.Sprite):
     
     def usar(self , necesidad_a_rellenar):
         
-        return necesidad_a_rellenar.aumentar(self._pts)
+        return necesidad_a_rellenar.aumentar(self._pts) # debido a que hay varios personajes, debo pasarle a la cosa la necesidad a Aumentar, de igual forma compruebo ante si existe en este objeto
         
 class Cama(Cosa):
     def __init__(self , necesidad , puntos , imagen):
@@ -66,7 +70,17 @@ class Estanteria(Cosa):
         funcion especializada de ejemplo para la estanteria
         """
         pass
+
+class Habitacion:
+    def __init__(self) -> None:
+        pass
     
+    def crear_cocina(self , necesidad, puntos , imagen):
+        return Cocina(necesidad , puntos , imagen)
+    
+    def crear_baño(self , necesidad , puntos , imagen):
+        return Baño(necesidad , puntos , imagen)
+
 class Cocina:
     def __init__(self , necesidad , puntos , imagen):
         """
@@ -81,7 +95,10 @@ class Cocina:
         return Horno(self._necesidad , self._puntos , self._imagen)
         
 class Baño:
-    def __init__(self , necesidad , puntos , imagen,):
+    def __init__(self , necesidad , puntos , imagen):
+        """
+        Esta es una clase que devuelve un objeto que quiero de la zona Baño
+        """
     
         self._necesidad = [need for need in asarray(necesidad) if need.nombre == "higiene"]
         self._puntos = puntos

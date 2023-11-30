@@ -34,7 +34,7 @@ class Wolife:
         self.jugador = Wosim("Jose" , [GRUPO_JUGADOR , GRUPO_TODOS] , (130 , 20))
         self.jugador2 = Wosim("Alfa" , [GRUPO_JUGADOR , GRUPO_TODOS] , (130 , 50))
         
-        self.mapa.crear_cosas([GRUPO_COSAS , GRUPO_TODOS] , self.jugador.necesidades + self.jugador2.necesidades)
+        self.mapa.crear_cosas([GRUPO_COSAS , GRUPO_TODOS] , self.jugador.necesidades + self.jugador2.necesidades) # grupos y una lista con la totalidad de necesidades a asignar a cada Cosa
         
         self.timer = pygame.USEREVENT + 1
         pygame.time.set_timer(self.timer , 1000)

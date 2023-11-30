@@ -14,9 +14,16 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 class Necesidad:
     def __init__(self , nombre : str , velocidad_degrade : "function" , prioridad : int , pos_ui : tuple):
-        """Clase necesidad, obtinene un int para restar a los puntos
-        obtiene un nivel de prioridad para aumentar la atención del Wosim 
-        sobre el nivel de necesidad
+        """
+        Clase necesidad, obtiene:
+        
+        nombre que es usado para asignar correctamente la necesidad a una cosa
+        
+        una velocidad de degrade que es una funcion (en mi caso, la hice de valores aleatorios)
+        
+        obtiene un nivel de prioridad para aumentar la atención del Wosim sobre el nivel de necesidad
+        
+        Por ultimo la posicion de la UI
         """
         
         self._nombre = nombre
@@ -50,13 +57,13 @@ class Necesidad:
     def cuantos_puntos(self):
         return self._puntos
     
-    def añadir_cosas(self , cosa : list):
-        self._cosas_que_aumentan_esto.append(cosa)
+    def añadir_cosas(self , cosa : object):
+        self._cosas_que_aumentan_esto.append(cosa) # añado cosas, como su nombre lo dice
     
     def seleccionar_una_cosa(self):
         return self._cosas_que_aumentan_esto[random.randint(0 , len(self._cosas_que_aumentan_esto))]
     
-    @property
+    @property # esto es un getter, setter y deleter
     def nombre(self):
         return self._nombre
     
@@ -75,7 +82,7 @@ class Necesidad:
             self.image = self._sprite(15)
         
         if 5 < self._puntos <= 10:
-            self.image = self._sprite(0)
+            self.image = self._sprite(10)
         
         if 0 < self._puntos <= 5:
             self.image = self._sprite(5)

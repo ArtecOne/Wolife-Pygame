@@ -3,7 +3,7 @@ from numpy import asarray
 from debug import debug
 import support
 import settings
-from new_cosas import Cama, Estanteria, Baño , Cocina
+from new_cosas import Cama, Estanteria, Habitacion
 
 pygame.init()
 
@@ -18,17 +18,36 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 class Tile(pygame.sprite.Sprite):
+    """
+    Un Tile es una cuadrilla del mapa, esta clase sirve para instaciar objetos Cuadrilla
+    con esto creo los suelos y los muros por capas
+    """
+    
     def __init__(self  , x : int, y : int , superficie : pygame.Surface):
         super().__init__()
         
         self.image = superficie
         self.rect = self.image.get_rect(topleft = (x , y))
     
-    def update(self) -> None:
-        pass 
 
 class Mapa:
     def __init__(self, data : dict , superficie : pygame.Surface,) -> None:
+        """
+        Clase que crea el Mapa mediante capas.
+        
+        Las capas son archivos CSV, matrices.
+        
+        Tengo una capa del suelo y los muros
+        
+        Aquí llamo los metodos de mi archivo Soporte,
+        los cuales:
+        
+        1. Recortan el Sprite Sheet
+        2. Leo los csv y los convierto en una matriz que pueda usar
+        3. Por cada valor de FILA y COLUMNA, creo un TILE con una posicion y un sprite
+        4. El Sprite es agregado al grupo y dibujado en pantalla junto a sus demás compañeros de grupo
+        """
+        
         self._pantalla = superficie
         self._data = data
         
@@ -42,8 +61,8 @@ class Mapa:
     
     def crear_cosas(self , grupos_a_pertenecer : list , necesidades):
         cositas = [
-                Cocina(necesidades , 2 , "assets\\img\\cosas\\cocina.png").crear_horno(),
-                Baño(necesidades , 1 , "assets\\img\\cosas\\bañera.png").crear_bañera(),
+                Habitacion().crear_cocina(necesidades , 2 , "assets\\img\\cosas\\cocina.png").crear_horno(),
+                Habitacion().crear_baño(necesidades , 1 , "assets\\img\\cosas\\bañera.png").crear_bañera(),
                 Cama(necesidades , 2 ,"assets\\img\\cosas\\cama.png"),
                 Estanteria(necesidades , 1 , "assets\\img\\cosas\\libreria.png")
                 ]
@@ -74,7 +93,5 @@ class Mapa:
     
     def mostrar(self):
         self._suelo.draw(self._pantalla)
-        self._suelo.update()
         
         self._paredes.draw(self._pantalla)
-        self._paredes.update()
