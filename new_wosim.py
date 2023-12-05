@@ -9,6 +9,7 @@ from numpy import asarray
 from pathfinding.core.grid import Grid
 from pathfinding.finder.bi_a_star import BiAStarFinder as BiAstar
 from new_necesidad import Necesidad
+from abc import ABC , abstractmethod
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -39,17 +40,19 @@ class Wosim (pygame.sprite.Sprite):
                             Necesidad("sueño", lambda: random.randint(0 , 3), 4, (x + 200 , self.yy)),
                             Necesidad("diversion", lambda: random.randint(0 , 3), 2 , (x + 300 , self.yy))]
         
-        self._estado = Esperando(self) # cerebro
-        # Estado inicial, cuando termina su tarea, ese Self se lo pasa al siguiente Estado antes de destruirse ( basicamente  self._humano.siguiente_estado(self._humano , args) cada que comete una transicion)
+        _estado = None # cerebro
+        
+        self.set_estado(Esperando())
         
         self._grupo_todos : pygame.sprite.Group = grupos[1] # GRUPO_TODOS , en i = 0 está GRUPO_JUGADOR
         
         self._inicio_x = self._pantalla.get_width()//2 // 32
         self._inicio_y = self._pantalla.get_height()//2 // 32
         
+        self.image = pygame.image.load(resource_path("assets/img/player/idle.png")).convert_alpha()
         self.rect = self.image.get_rect(center = (self._inicio_x * 32 , self._inicio_y * 32)) # RECT es una propiedad de pygame.Sprite al igual que IMAGE
         
-        self._objetivo = pygame.image.load(resource_path("assets\\img\\UI\\selection.png")).convert_alpha()
+        self._objetivo = pygame.image.load(resource_path("assets/img/UI/selection.png")).convert_alpha()
         self._objetivo_rect = pygame.Rect(self.rect.topleft, (settings.TILE_SIZE , settings.TILE_SIZE))
 
     @property
@@ -70,6 +73,8 @@ class Wosim (pygame.sprite.Sprite):
 
     def set_estado(self , state):
         self._estado = state
+        self._estado.humano = self
+        self._estado.init()
     
     def decrementar_necesidades(self):
         [need.decrecer() for need in asarray(self._necesidades)] # jugador.decrementar_necesidades()  sujeto y predicado
@@ -83,12 +88,38 @@ class Wosim (pygame.sprite.Sprite):
         self._pantalla.blit(self._objetivo , self._objetivo_rect)
         
         debug(f"Nombre {self._nombre} , hambre {int(self._necesidades[0].prioridad)} , higiene {int(self._necesidades[1].prioridad)} , energia {int(self._necesidades[2].prioridad)} , diversion {int(self._necesidades[3].prioridad)}" , self._pantalla.get_width()//2 - 80, self.yy + 10)
+
+class Estado(ABC):
+    @property
+    def humano(self) -> Wosim:
+        return self._humano
+    
+    @humano.setter
+    def humano(self , humano : Wosim) -> None:
+        self._humano = humano
+    
+    @property
+    def pantalla(self) -> Wosim:
+        self._pantalla = pygame.display.get_surface()
+        return self._pantalla
+    
+    def init(self) -> None:
+        pass
+    
+    @abstractmethod
+    def set_imagen(self) -> None:
+        pass
         
-class Esperando:
-    def __init__(self , jugador : Wosim):
-        self._humano = jugador
-        
-        self._humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha() # image es una propieda de pygame.Sprite
+    @abstractmethod
+    def main(self , delta) -> None:
+        """Metodo unicamente existente para ser sobreescrito.
+        Este metodo debe incorporar o agrupar la funcionalidad del Estado
+        """
+        pass
+    
+class Esperando(Estado):
+    def __init__(self):
+        self.imagen_def = pygame.image.load(resource_path("assets/img/player/idle.png")).convert_alpha() # image es una propieda de pygame.Sprite
         
         self._donde_ir = 0 # esto se convierte en una Cosa
         
@@ -97,8 +128,11 @@ class Esperando:
         
         self._need = 0
     
+    def set_imagen(self):
+        self.humano.image = self.imagen_def # image es una propieda de pygame.Sprite
+    
     def priorizar(self):
-        necesidades = sorted(self._humano.necesidades , key= lambda nece: nece.prioridad , reverse= True) # ordeno una lista de necesidades en base a su prioridad
+        necesidades = sorted(self.humano.necesidades , key= lambda nece: nece.prioridad , reverse= True) # ordeno una lista de necesidades en base a su prioridad
         return necesidades[random.randint(2)]
     
     def asignar_need_y_donde_ir(self, necesidad):
@@ -110,7 +144,6 @@ class Esperando:
         self.seleccion_y = self._donde_ir.rect.centery // settings.TILE_SIZE
     
     def buscar(self):
-        
         necesidad = self.priorizar()
         
         if necesidad.cuantos_puntos() < random.randint(10 , 21): # La personaje elige aleatoriamente cuando es necesario ir a satisfacerse
@@ -119,17 +152,18 @@ class Esperando:
         
         
     def main(self , delta = None):
+        self.set_imagen()
+        
         self.buscar()
         
         if self._donde_ir: # si hay donde ir, pues posiciono mi rectangulo objetivo y paso al siguiente estado
-            self._humano.rectangulo_objetivo.topleft = (self.seleccion_x * settings.TILE_SIZE, self.seleccion_y * settings.TILE_SIZE)
+            self.humano.rectangulo_objetivo.topleft = (self.seleccion_x * settings.TILE_SIZE, self.seleccion_y * settings.TILE_SIZE)
             
-            self._humano.set_estado(Movimiento(self._humano, # si no me transfiero a mi mismo, no podré ver hacer nada, el personaje queda sin cerebro
-                                               (self._humano.rectangulo_objetivo.centerx // settings.TILE_SIZE, self._humano.rectangulo_objetivo.centery // settings.TILE_SIZE),
+            self.humano.set_estado(Movimiento((self.humano.rectangulo_objetivo.centerx // settings.TILE_SIZE, self.humano.rectangulo_objetivo.centery // settings.TILE_SIZE),
                                                self._donde_ir , self._need))
             
-class Movimiento:
-    def __init__(self , jugador : Wosim, destino : tuple, cosa_donde_ir : object , necesidad) -> None:
+class Movimiento(Estado):
+    def __init__(self , destino : tuple, cosa_donde_ir : object , necesidad) -> None:
         """
         Esta clase se encarga de apuntar y mover al personaje
         
@@ -140,22 +174,11 @@ class Movimiento:
         
         al final, cometemos la transicion pasando los datos necesarios para el siguiente estado
         """
-        self._humano = jugador # por supuesto, mi cerebro me conoce
         self._cosa = cosa_donde_ir # la cosa que voy a usar
         self._need = necesidad # la necesidad que debo satisfacer
+        self._direccion = pygame.math.Vector2(0 , 0)    
         
-        self._pantalla = pygame.display.get_surface()
-        self._direccion = pygame.math.Vector2(0 , 0)
-        self._pos = self._humano.rect.center # obtengo la posicion actual de mi personaje
-        
-        self._inicio = (self._humano.rect.centerx // settings.TILE_SIZE , self._humano.rect.centery // settings.TILE_SIZE)
-        # convierto la posicion actual de mi personaje a tamaño cuadricula para poder crear nodo en el grafo
-        
-        self._grafo = Grid(matrix= MAPA_MATRIX , inverse= True)
-        # inverso ya que la matriz es la capa de muros, -1 es el suelo
-        
-        self._nodo_inicio = self._grafo.node(*self._inicio)
-        self._nodo_final = self._grafo.node(*destino)
+        self._destino = destino
         
         self._path =  []
         self._puntos = []
@@ -163,9 +186,25 @@ class Movimiento:
         
         self._index = 1
         self._sprite = lambda i , image: pygame.image.load(resource_path(image.format(int(i)))).convert_alpha()
-        self._humano.image = self._sprite(self._index , "assets\\img\\player\\front_run ({}).png")
+        
+        
+    
+    def init(self):
+        self._pos = self.humano.rect.center # obtengo la posicion actual de mi personaje
+        
+        self._inicio = (self.humano.rect.centerx // settings.TILE_SIZE , self.humano.rect.centery // settings.TILE_SIZE)
+        # convierto la posicion actual de mi personaje a tamaño cuadricula para poder crear nodo en el grafo
+        
+        self._grafo = Grid(matrix= MAPA_MATRIX , inverse= True)
+        # inverso ya que la matriz es la capa de muros, -1 es el suelo
+        
+        self._nodo_inicio = self._grafo.node(*self._inicio)
+        self._nodo_final = self._grafo.node(*self._destino)
         
         self.crear_camino()
+        
+    def set_imagen(self , photo) -> None:
+        self.humano.image = self._sprite(self._index , photo)
     
     def crear_camino(self):
         finder = BiAstar(diagonal_movement= True)
@@ -187,14 +226,14 @@ class Movimiento:
         if self._index > 4:
             self._index = 1
             
-        inicio = pygame.math.Vector2(self._humano.rect.center)
+        inicio = pygame.math.Vector2(self.humano.rect.center)
         
         final = pygame.math.Vector2(self._colisiones[0].center)
         
         self._direccion = (final - inicio).normalize() # crea la direccion en x & y donde se moverá el personaje
         
         self._pos += self._direccion * 100 * delta # velocidad jugador
-        self._humano.rect.center = self._pos # asignacion de posicion
+        self.humano.rect.center = self._pos # asignacion de posicion
         
         
         for rect in self._colisiones:
@@ -204,42 +243,48 @@ class Movimiento:
         if not self._colisiones:
             return
         
-        if self._colisiones[0].centery > self._humano.rect.centery: 
-            self._humano.image = self._sprite(self._index, "assets\\img\\player\\front_run ({}).png")
+        if self._colisiones[0].centery > self.humano.rect.centery: 
+            self.set_imagen("assets/img/player/front_run ({}).png")
         
-        elif  self._colisiones[0].centery < self._humano.rect.centery:
-            self._humano.image = self._sprite(self._index, "assets\\img\\player\\back_run ({}).png")
+        elif  self._colisiones[0].centery < self.humano.rect.centery:
+            self.set_imagen("assets/img/player/back_run ({}).png")
             
-        elif  self._colisiones[0].centerx > self._humano.rect.centerx:
-            self._humano.image = self._sprite(self._index, "assets\\img\\player\\der_run ({}).png")
+        elif  self._colisiones[0].centerx > self.humano.rect.centerx:
+            self.set_imagen("assets/img/player/der_run ({}).png")
             
-        elif  self._colisiones[0].centerx < self._humano.rect.centerx:
-            self._humano.image = self._sprite(self._index, "assets\\img\\player\\izq_run ({}).png")
+        elif  self._colisiones[0].centerx < self.humano.rect.centerx:
+            self.set_imagen("assets/img/player/izq_run ({}).png")
         
         
     def main(self, delta = None):
+        if self._index == 1:
+            self.set_imagen("assets/img/player/front_run ({}).png")
+        
         self.ir(delta)
         
         if not self._puntos: # si aun no he creado puntos, pues no sigo avanzando
             return
         
         if not self._colisiones: # cuando no hay más puntos significa que llegué al final
-            self._humano.set_estado(Satisfaciendo(self._humano , self._cosa , self._need))
+            self.humano.set_estado(Satisfaciendo(self._cosa , self._need))
             
             
-class Satisfaciendo:
-    def __init__(self , jugador : Wosim, cosa , necesidad) -> None:
-        self._humano = jugador
-        
+class Satisfaciendo(Estado):
+    def __init__(self , cosa , necesidad) -> None:
         self._cosa = cosa
         
         self._need = necesidad
         
-        self._humano.image = pygame.image.load(resource_path("assets\\img\\player\\idle.png")).convert_alpha()
-        
+        self.imagen_def = pygame.image.load(resource_path("assets/img/player/idle.png")).convert_alpha()
+
+    def set_imagen(self) -> None:
+        self.humano.image = self.imagen_def
+     
     def main(self , delta = None):
         #if not self._need in asarray(self._cosa.yo_relleno()): # si no está la necesidad en el objeto, pues cambio de estado, esto es redundante aunque me ha servido para darme cuenta al crear nuevos sims
             #self._humano.set_estado(Esperando(self._humano))
-    
+
+        self.set_imagen()
+        
         if self._cosa.usar(self._need): # uso la Cosa y relleno la necesidad que necesito
-            self._humano.set_estado(Esperando(self._humano))
+            self.humano.set_estado(Esperando())

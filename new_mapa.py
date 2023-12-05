@@ -61,10 +61,10 @@ class Mapa:
     
     def crear_cosas(self , grupos_a_pertenecer : list , necesidades):
         cositas = [
-                Habitacion().crear_cocina(necesidades , 2 , "assets\\img\\cosas\\cocina.png").crear_horno(),
-                Habitacion().crear_baño(necesidades , 1 , "assets\\img\\cosas\\bañera.png").crear_bañera(),
-                Cama(necesidades , 2 ,"assets\\img\\cosas\\cama.png"),
-                Estanteria(necesidades , 1 , "assets\\img\\cosas\\libreria.png")
+                Habitacion().crear_cocina(necesidades , 2 , "assets/img/cosas/cocina.png").crear_horno(),
+                Habitacion().crear_baño(necesidades , 1 , "assets/img/cosas/bañera.png").crear_bañera(),
+                Cama(necesidades , 2 ,"assets/img/cosas/cama.png"),
+                Estanteria(necesidades , 1 , "assets/img/cosas/libreria.png")
                 ]
         
         for grupo in asarray(grupos_a_pertenecer):

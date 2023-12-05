@@ -16,7 +16,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-font = pygame.font.Font(resource_path("assets\\fuentes\\pixeled_font.ttf") , 15)
+font = pygame.font.Font(resource_path("assets/fuentes/pixeled_font.ttf") , 15)
 def debug(info , x = 10 , y = 10 , color = "black"):
     surf = pygame.display.get_surface()
     # crear texto

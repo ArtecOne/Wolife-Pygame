@@ -32,7 +32,7 @@ class Necesidad:
         self._multiplicador_prioridad = prioridad
         self._prioridad = 0
         
-        self._sprite = lambda i: pygame.image.load(resource_path(f"assets\\img\\UI\\indicador ({i}).png"))
+        self._sprite = lambda i: pygame.image.load(resource_path(f"assets/img/UI/indicador ({i}).png"))
         self.image = self._sprite(25)
         self.rect = self.image.get_rect(center = pos_ui)
         

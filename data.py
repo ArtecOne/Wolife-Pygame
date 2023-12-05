@@ -14,9 +14,9 @@ def resource_path(relative_path) -> str:
     return os.path.join(base_path, relative_path)
 
 MAPA = {
-    "suelo" : resource_path("assets\\tmx\\casa_vacia_suelo.csv") ,
-    "muros" : resource_path("assets\\tmx\\casa_vacia_muros.csv") ,
-    "sprites" : resource_path("assets\\img\\tiles\\Room_Builder_free_32x32.png")
+    "suelo" : resource_path("assets/tmx/casa_vacia_suelo.csv") ,
+    "muros" : resource_path("assets/tmx/casa_vacia_muros.csv") ,
+    "sprites" : resource_path("assets/img/tiles/Room_Builder_free_32x32.png")
 }
 
 MAPA_MATRIX = np.asarray([[50,290,290,290,290,290,290,290,290,15,290,290,290,290,290,290,290,290,290,14],
