@@ -40,7 +40,7 @@ class Wosim (pygame.sprite.Sprite):
                             Necesidad("sueño", lambda: random.randint(0 , 3), 4, (x + 200 , self.yy)),
                             Necesidad("diversion", lambda: random.randint(0 , 3), 2 , (x + 300 , self.yy))]
         
-        _estado = None # cerebro
+        self._estado = None # cerebro
         
         self.set_estado(Esperando())
         

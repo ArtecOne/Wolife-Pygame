@@ -1,6 +1,4 @@
 import os , sys , csv
-from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
 import numpy as np
 
 def resource_path(relative_path) -> str: 

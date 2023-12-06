@@ -1,0 +1,198 @@
+@startuml
+class Cosa {
+    crearse()
+    yo_relleno()
+    usar()
+        _necesidades : list 
+    _pts : int 
+    image : pygame.Surface 
+    rect : pygame.Rect 
+    __init__(_necesidades: list , _pts: int , image: pygame.Surface , rect: pygame.Rect )
+}
+class Cama {
+    hacer_noche()
+        __init__()
+}
+class Estanteria {
+    aprender()
+        __init__()
+}
+class Habitacion {
+    crear_cocina()
+        __init__()
+}
+class Cocina {
+    crear_horno()
+        _necesidad : list 
+    _puntos : int 
+    _imagen : int 
+    __init__(_necesidad: list , _puntos: int , _imagen: int )
+}
+class Bano {
+        _necesidad : int 
+    _puntos : int 
+    _imagen : int 
+    __init__(_necesidad: int , _puntos: int , _imagen: int )
+}
+class Horno {
+        __init__()
+}
+class Banera {
+        __init__()
+}
+class Tile {
+        image : pygame.Surface 
+    rect : pygame.Rect 
+    __init__(image: pygame.Surface , rect: pygame.Rect )
+}
+class Mapa {
+    crear_cosas()
+    crear_sprite_tiles()
+    crear_grupo_tiles()
+    mostrar()
+        _pantalla : pygame.Surface 
+    _data : dict 
+    _lista_terrenos : list 
+    _suelo : pygame.sprite.Group 
+    _paredes : pygame.sprite.Group 
+    __init__(_pantalla: pygame.Surface , _data: dict , _lista_terrenos: list , _suelo: pygame.sprite.Group , _paredes: pygame.sprite.Group )
+}
+class Necesidad {
+    aumentar()
+    decrecer()
+    cuantos_puntos()
+    seleccionar_una_cosa()
+    nombre()
+    prioridad()
+    mostrar_UI()
+        _nombre : str 
+    _puntos : int 
+    _tiempo : function 
+    _multiplicador_prioridad : int 
+    _prioridad : int 
+    _sprite : function 
+    image : pygame.Surface 
+    rect : pygame.Rect 
+    _cosas_que_aumentan_esto : list 
+    _puntos
+    _prioridad
+    _prioridad
+    _prioridad
+    image
+    image
+    image
+    image
+    image
+    image
+    __init__(_nombre: str , _puntos: int , _tiempo: function , _multiplicador_prioridad: int , _prioridad: int , _sprite: function , image: pygame.Surface , rect: pygame.Rect , _cosas_que_aumentan_esto: list )
+}
+class Wosim {
+    me_llamo()
+    necesidades()
+    rectangulo_objetivo()
+    grupo_todos()
+    set_estado()
+    decrementar_necesidades()
+    update()
+        _nombre
+    _pantalla
+    _estado
+    _grupo_todos : pygame.sprite.Group 
+    _inicio_x
+    _inicio_y
+    image
+    rect
+    _objetivo
+    _objetivo_rect
+    _estado
+    __init__(_grupo_todos: pygame.sprite.Group )
+}
+class Estado {
+    humano()
+    humano()
+    pantalla()
+    init()
+    set_imagen()
+    main()
+        _humano
+    _pantalla
+    __init__()
+}
+class Esperando {
+    set_imagen()
+    priorizar()
+    asignar_need_y_donde_ir()
+    buscar()
+    main()
+        imagen_def
+    _donde_ir
+    _seleccion_x
+    seleccion_y
+    _need
+    _need
+    _donde_ir
+    seleccion_x
+    seleccion_y
+    __init__()
+}
+class Movimiento {
+    init()
+    set_imagen()
+    crear_camino()
+    ir()
+    main()
+        _cosa
+    _need
+    _direccion
+    _destino
+    _index
+    _sprite
+    _pos
+    _grafo
+    _nodo_inicio
+    _nodo_final
+    _index
+    __init__()
+}
+class Satisfaciendo {
+    set_imagen()
+    main()
+        _cosa
+    _need
+    imagen_def
+    __init__()
+}
+class Wolife {
+    iniciar()
+        amplitud : int 
+    altura : int 
+    pantalla
+    titulo
+    reloj
+    frame_anterior
+    mapa
+    jugador
+    jugador2
+    timer
+    frame_anterior
+    __init__(amplitud: int , altura: int )
+}
+Cosa --> Surface
+Cosa --> Rect
+Cosa <|-- Cama
+Cosa <|-- Estanteria
+Cosa <|-- Horno
+Cosa <|-- Banera
+Tile --> Surface
+Tile --> Rect
+Mapa --> Surface
+Mapa --> Group
+Mapa --> Group
+Necesidad --> Surface
+Necesidad --> Rect
+Wosim --> Group
+ABC <|-- Estado
+Estado <|-- Esperando
+Estado <|-- Movimiento
+Estado <|-- Satisfaciendo
+@enduml
